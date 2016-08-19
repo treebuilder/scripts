@@ -8,7 +8,10 @@ from netaddr import IPNetwork
 from multiprocessing.dummy import Pool as ThreadPool
 
 # We need to know which interface we're using.
-IFACE = sys.argv[1]
+try:
+  IFACE = sys.argv[1]
+except:
+  IFACE = "eth0"
 
 # structure: ipaddr:{servicename:ports}
 HOSTDICT = {}
@@ -75,9 +78,6 @@ def fullnmap(target):
   return result
 
 
-'''
-[['', 'Starting Nmap 7.25BETA1 ( https://nmap.org ) at 2016-08-11 11:08 EDT', 'Nmap scan report for 192.168.151.137', 'Host is up (0.00039s latency).', 'Not shown: 997 closed ports', 'PORT   STATE SERVICE VERSION', '21/tcp open  ftp     vsftpd 2.0.8 or later', '22/tcp open  ssh     OpenSSH 5.9p1 Debian 5ubuntu1.4 (Ubuntu Linux; protocol 2.0)', '| ssh-hostkey: ', '|   1024 82:fe:93:b8:fb:38:a6:77:b5:a6:25:78:6b:35:e2:a8 (DSA)', '|_  256 91:b8:6a:45:be:41:fd:c8:14:b5:02:a0:66:7c:8c:96 (ECDSA)', '80/tcp open  http    Apache httpd 2.2.22 ((Ubuntu))', '|_http-server-header: Apache/2.2.22 (Ubuntu)', "|_http-title: Site doesn't have a title (text/html).", 'MAC Address: 00:0C:29:37:E5:25 (VMware)', 'Device type: general purpose', 'Running: Linux 2.6.X|3.X', 'OS CPE: cpe:/o:linux:linux_kernel:2.6 cpe:/o:linux:linux_kernel:3', 'OS details: Linux 2.6.32 - 3.10', 'Network Distance: 1 hop', 'Service Info: Host: Tr0ll; OS: Linux; CPE: cpe:/o:linux:linux_kernel', '', 'TRACEROUTE', 'HOP RTT     ADDRESS', '1   0.39 ms 192.168.151.137', '', 'OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .', 'Nmap done: 1 IP address (1 host up) scanned in 23.71 seconds', '']
-'''
 
 def parseresults(results,HOSTDICT):
   # build up HOSTDICT here
@@ -90,6 +90,7 @@ def parseresults(results,HOSTDICT):
     ports = []
     for item in target:
       if "open  " in item: 
+        print item.split()
         ports.append(item.split())
     for item in ports:
       HOSTDICT[ip][item[2]] = item[0].split('/')[0]
@@ -117,19 +118,63 @@ def enum_http(target, port):
   # dirb
   print "  running dirb scan on %s..." % target
   targetfn = cwd + '/' + target + '/' + 'http/' + '-'.join(target.split('.')) + '-dirb.txt'
-  result = subprocess.check_output(['dirb', 'http://%s' % target, '-o', targetfn, '-S'])
+  result = subprocess.check_output(['dirb', 'http://%s' % target, '-o', targetfn, '-S', '-w'])
   # skipfish
-  print "  running skipfish on %s..." % target
-  targetfn = cwd + '/' + target + '/' + 'http/' + '-'.join(target.split('.')) + '-skipfish'
-  makedir(targetfn)
-  result = subprocess.check_output(['skipfish', '-S/usr/share/skipfish/dictionaries/complete.wl', '-u', '-o', targetfn, 'http://%s' % target])
+  #print "  running skipfish on %s..." % target
+  #targetfn = cwd + '/' + target + '/' + 'http/' + '-'.join(target.split('.')) + '-skipfish'
+  #makedir(targetfn)
+  #result = subprocess.check_output(['skipfish', '-S/usr/share/skipfish/dictionaries/complete.wl', '-u', '-o', targetfn, 'http://%s' % target])
   # nikto
   # nikto -host http://192.168.151.137 -o foo -F txt -C all -T x
   print "  running nikto scan on %s..." % target
-  targetfn = cwd + '/' + target + '/' + 'http/' + '-'.join(target.split('.')) + '-nikto.txt'
+  targetfn = cwd + '/' + target + '/' + 'nikto'
+  makedir(targetfn)
+  targetfn = cwd + '/' + target + '/' + 'nikto/' + '-'.join(target.split('.')) + '-nikto.txt'
   result = subprocess.check_output(['nikto', '-host', 'http://%s' % target, '-o', targetfn, '-F', 'txt', '-C', 'all', '-T', 'x'])
-        
   return
+
+def enum_nikto(target):
+  # nikto
+  # nikto -host http://192.168.151.137 -o foo -F txt -C all -T x
+  print "  running nikto scan on %s..." % target
+  cwd = os.getcwd()
+  targetfn = cwd + '/' + target + '/' + 'nikto'
+  makedir(targetfn)
+  targetfn = cwd + '/' + target + '/' + 'nikto/' + '-'.join(target.split('.')) + '-nikto.txt'
+  result = subprocess.check_output(['nikto', '-host', 'http://%s' % target, '-o', targetfn, '-F', 'txt', '-C', 'all', '-T', 'x'])
+  return
+        
+def enum_enum4linux(target):
+  # enum4linux
+  # enum4linux -a -l -d 192.168.151.142
+  # It would seem that enum4linux does not like being run concurrently!
+  print "  running enum4linux scan on %s..." % target
+  cwd = os.getcwd()
+  targetfn = cwd + '/' + target + '/' + 'enum4linux'
+  makedir(targetfn)
+  targetfn = cwd + '/' + target + '/' + 'enum4linux/' + '-'.join(target.split('.')) + '-enum4linux.txt'
+  result = subprocess.check_output(['enum4linux', '-a', '-l', target  ])
+  f = open(targetfn, 'w')
+  for line in result:
+    f.write(line)
+  f.close()
+  return result
+
+def enum_nbtscan(target):
+  #nbtscan -rvh 192.168.151.142
+  print "  running nbtscan on %s..." % target
+  cwd = os.getcwd()
+  targetfn = cwd + '/' + target + '/' + 'nbtscan'
+  makedir(targetfn)
+  targetfn = cwd + '/' + target + '/' + 'nbtscan/' + '-'.join(target.split('.')) + '-nbtscan.txt'
+  result = subprocess.check_output(['nbtscan', '-rvh', target ])
+  f = open(targetfn, 'w')
+  for line in result:
+    f.write(line)
+  f.close()
+  return result
+
+
 
 def enum_ftp(target, port):
   # nmap NSE,
@@ -142,6 +187,16 @@ def enum_ssh(target, port):
 
 def enum_rpcinfo(target, port):
   # ???
+  return
+
+def enum_snmp(target, port):
+  # onesixtyone
+  # NSE?
+  return
+
+def enum_smb(target, port):
+  # smbmap -H <IP>
+  # NSE?
   return
 
 def tryharder(target, data):
@@ -157,6 +212,10 @@ def tryharder(target, data):
       results = enum_ssh(target, port)
     if service == "rpcinfo":
       results = enum_rpcinfo(target, port)
+    if "netbios" in service:
+      results = enum_smb(target, port)
+      results = enum_nbtscan(target)
+      results = enum_enum4linux(target)
   return
  
 
@@ -181,6 +240,38 @@ def main():
   print "Performing quick NMAP scans on %s targets..." % len(iplist)
   result = pool.map(quicknmap, iplist)
   print "Done."
+  ###
+  ### Should only perform enum4linux if smb present
+  ### ditto nbt
+  ### also need onesixtyone scans
+  ###onesixtyone -c ./results/community -i ./results/UDP161-IP.txt >./results/SNMP-onesixty.txt
+  ####Full SNMP Tree
+  ###for word in $(cat ./results/UDP161-IP.txt);do snmpwalk -c public -v1 $word>./results/$word/$word-SNMPFullTree.txt  & done 
+  ####Winuser
+  ###for word in $(cat ./results/UDP161-IP.txt);do snmpwalk -c public -v1 $word 1.3.6.1.4.1.77.1.2.25 >./results/$word/$word-SNMPWinUser.txt  & done 
+  ####Enumerating Running Windows Processes
+  ###echo Enumerating Running Windows Processes
+  ###for word in $(cat ./results/UDP161-IP.txt);do snmpwalk -c public -v1 $word 1.3.6.1.2.1.25.4.2.1.2 >./results/$word/$word-SNMPWinProcess.txt  & done 
+  ####Enumerating Open TCP Ports:
+  ###echo Enumerating Open TCP Ports
+  ###for word in $(cat ./results/UDP161-IP.txt);do snmpwalk -c public -v1 $word 1.3.6.1.2.1.6.13.1.3 >./results/$word/$word-SNMPWinTCPPorts.txt  & done 
+  ####Enumerating Installed Software:
+  ###echo Enumerating Installed Software
+  ###for word in $(cat ./results/UDP161-IP.txt);do snmpwalk -c public -v1 $word 1.3.6.1.2.1.25.6.3.1.2 >./results/$word/$word-SNMPWinInstalledSoftware.txt  & done
+
+  ### Look at http://www.backtrack-linux.org/wiki/index.php/Pentesting_VOIP#Information_Gathering
+  ### for SIP enumeration techniques
+
+  #print "Performing enum4linux scans on %s targets..." % len(iplist)
+  # enum4linux apparently doesn't like being run multithreaded.  Have to iterate instead.
+  #
+  #result3 = pool.map(enum_enum4linux, iplist)
+  #print "Done."
+  #
+  # Apparently, nbtscan doesn't like it, either.
+  #print "Performing nbtscan scans on %s targets..." % len(iplist)
+  #result4 = pool.map(enum_nbtscan, iplist)
+  #print "Done."
   parseresults(result,HOSTDICT)
   for target in HOSTDICT.keys():
     tryharder(target, HOSTDICT[target])  

