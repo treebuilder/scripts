@@ -36,9 +36,13 @@ class numr8(object):
   def parseargs(self):
     parser = argparse.ArgumentParser(prog='numr8.py', add_help=False)
     parser.add_argument('-i', dest = 'interface', help='Interface to use (default: eth0)', default="eth0")    
+    parser.add_argument('-c', dest = 'cidr', nargs='?', help='CIDR netblock to use [optional]', default=None) 
     args = parser.parse_args()
     self.myaddr, self.mynetmask = self.getmyaddr(args.interface)
     self.netstart, self.cidr = self.getnet(self.myaddr, self.mynetmask)
+    if args.cidr != None:
+      self.cidr = args.cidr
+    print self.cidr
     self.hosts=self.findotherips(args.interface, self.netstart, self.cidr, self.myaddr)
 
   def getmyaddr(self, i):
