@@ -13,7 +13,7 @@ from multiprocessing.dummy import Pool as ThreadPool
 
 class numr8(object):
 
-  def __init__(self, directoryname="Systems", userlist="wordlists/users.txt", passlist="wordlists/passwds.list"):
+  def __init__(self, directoryname="hosts", userlist="wordlists/users.txt", passlist="wordlists/passwds.list"):
     self.banner()
     self.makedir(directoryname)
     self.parseargs()
@@ -42,7 +42,11 @@ class numr8(object):
     self.netstart, self.cidr = self.getnet(self.myaddr, self.mynetmask)
     if args.cidr != None:
       self.cidr = args.cidr
-    print self.cidr
+    print "Our interface: %s" % args.interface
+    print "Our IP: %s" % self.myaddr
+    print "Our netmask: %s" % self.mynetmask
+    print "Scanning a /%s..." % self.cidr
+    print
     self.hosts=self.findotherips(args.interface, self.netstart, self.cidr, self.myaddr)
 
   def getmyaddr(self, i):
@@ -70,7 +74,7 @@ class numr8(object):
     # We need to remove the first and almost-last IP from the list, because VMWare.
     first = str(list(IPNetwork(range))[1])
     last = str(list(IPNetwork(range))[-2])
-    result = subprocess.check_output(['nmap','-sn', '-n', '-T4', range])
+    result = subprocess.check_output(['nmap','-sn', '-n', '-T3', range])
     result = result.split('\n')
     ips = []
     for i in result:
